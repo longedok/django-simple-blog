@@ -1,0 +1,116 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}{{ post.title }}{% endblock %}
+{% block blog_header %}{% endblock %}
+
+{% block content %}
+    <div class="blog-post blog-post-comments">
+        <h2 class="blog-post-title">{{ post.title }}</h2>
+        <p class="blog-post-meta">{{ post.pub_date }}</p>
+        {{ post.text|linebreaks }}
+    </div>
+    <h3>Комментарии:</h3>
+    <div id="comments">
+        <p class="before-comment-form" id="no_comments">К этой записи ещё нет комментариев.</p>
+    </div>
+
+    {% if user.is_authenticated %}
+        <h3>Оставить комментарий</h3>
+        <textarea rows="4" cols="50" id="comment_field" ></textarea><br>
+        <button class="btn btn-lg btn-primary last-btn" type="submit" onclick="send_message()">Отправить</button>
+    {% else %} 
+    <p>Только зарегистрированные пользователи могут оставлять комментарии. <a href="{% url 'account_login' %}?next=/blog/{{ post.id }}/">Войдите</a> или <a href="{% url 'account_signup' %}">зарегистрируйтесь</a>.</p>
+    {% endif %}
+{% endblock content %}
+
+{% block after_jquery %}
+<script type="text/javascript">
+var entityMap = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': '&quot;',
+    "'": '&#39;',
+    "/": '&#x2F;'
+};
+
+function escapeHtml(string) {
+    return String(string).replace(/[&<>"'\/]/g, function (s) {
+      return entityMap[s];
+    });
+};
+
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie != '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = jQuery.trim(cookies[i]);
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+};
+
+var csrftoken = getCookie('csrftoken');
+
+function csrfSafeMethod(method) {
+    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+};
+
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        }
+    },
+    cache: false
+});
+
+function send_message() {
+    var text = $("#comment_field").val();
+    if (text.trim().length == 0) {
+        alert("Невозможно отправить пустой комментарий");
+        return;
+    }
+    $.ajax({url:"{% url 'post_comment' %}", 
+            data:{"text": text, 
+                  "post": {{ post.id }}},
+            method: "post",
+            success: function(data, status) {
+                if (data['status'] == 1) {
+                    $("#comments").append("<div class='comment'><p class='comment-username'>{{ user.username }} " + 
+                                          "<span class='blog-post-meta'>" + data['date'] + "</span></p>" + 
+                                          "<p>" + escapeHtml(text) + "</p>" + 
+                                          "</div>");
+                    $("#comment_field").val("");
+                    $("#no_comments").remove();
+                } else {
+                    alert(data['error']);
+                }
+            },
+            error: function(xhr, status, error) {
+                alert("Ошибка при отправлении комментария");
+            }
+           }); 
+}
+
+$(document).ready(function() {
+    $.get("/blog/get_comments/{{ post.id }}/", 
+          function(data, status) {
+                if (data.length > 0)
+                    $("#no_comments").remove();
+                data.forEach(function(entry) {
+                              $("#comments").append("<div class='comment'><p class='comment-username'>" + escapeHtml(entry['user']) + 
+                                                    " <span class='blog-post-meta'>" + entry['date'] + "</span></p>" + 
+                                                    "<p>" + escapeHtml(entry['text']) + "</p>" + 
+                                                    "</div>");
+                          });
+              });
+});
+</script>
+{% endblock %}

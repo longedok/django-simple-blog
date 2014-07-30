@@ -1,0 +1,44 @@
+{% extends "account/base.html" %}
+
+{% load i18n %}
+{% load account %}
+{% load staticfiles %}
+{% load url from future %}
+
+{% block title %}"Войти"{% endblock %}
+
+{% block extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'blog/css/font-awesome.min.css' %}">
+    <link rel="stylesheet" href="{% static 'blog/css/bootstrap-social.css' %}">
+{% endblock %}
+
+{% block content %}
+    {{ block.super }}
+    <a class="btn btn-lg btn-block btn-social btn-facebook" href="/accounts/facebook/login/">
+        <i class="fa fa-facebook"></i>Войти через Facebook
+    </a>
+
+    <p class="text-center">или</p>
+
+    <form class="form-signin" method="POST" action="{% url 'account_login' %}">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <input id="id_login" name="login" type="text" class="form-control" placeholder="Имя пользователя" required maxlength="30" value='{{ form.login.value|default_if_none:"" }}'>
+        {{ form.username.errors }}
+        <input id="id_password" name="password" type="password" class="form-control" placeholder="Пароль" maxlength="30" required>
+        {{ form.password.errors }}
+        <div class="checkbox">
+            <label>
+                <input id="id_remember" type="checkbox" value="remember-me" checked> Запомнить
+            </label>
+        </div>
+        {% if redirect_field_value %}
+        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+        {% endif %}
+
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Войти</button>
+    </form>
+
+    <p>Нет аккаунта? <a href="{{ signup_url }}">Зарегистрируйтесь.</a></p>
+{% endblock content%}

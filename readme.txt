@@ -1,0 +1,1 @@
+Simple Django blog application I did as a test assignment for a job interview.
